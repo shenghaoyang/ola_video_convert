@@ -1,16 +1,11 @@
 #include <media.hpp>
 
-
 #include <cxxopts.hpp>
 
 #include <stdexcept>
 #include <iostream>
-#include <cstdint>
 #include <string>
 #include <fstream>
-#include <type_traits>
-#include <cstring>
-#include <cstdio>
 #include <algorithm>
 
 
@@ -43,7 +38,7 @@ int prog(int argc, char **argv) {
         throw std::runtime_error{"could not open showfile"};   
 
     io::UniverseStates universe_states{};
-    io::OLAFrame d_frame;
+    io::OLAFrame d_frame{};
 
     while (read_frame(show, d_frame) || (d_frame.duration_ms == -1)) {
         universe_states[d_frame.universe] = d_frame.data;
