@@ -67,12 +67,13 @@ more consistent.)
 This project uses the Meson build system.
 
 Dependencies:
-    - `libavcodec`
-    - `libavformat`
-    - `libavutil`
-    - `boost`
-    - `cxxopts`
-    - C++17 capable C++ compiler & C++ standard library.
+
+- `libavcodec`
+- `libavformat`
+- `libavutil`
+- `boost`
+- `cxxopts`
+- C++17 capable C++ compiler & C++ standard library.
 
 See `meson.build` for the exact versions required. (Note that the versions were
 just the ones I had installed on bullseye, so they might be higher than
