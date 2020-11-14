@@ -163,8 +163,7 @@ void DMXVideoEncoder::close() {
     if (av_write_trailer(fmt_ctx.get()))
         throw std::runtime_error{"writing trailer"};
 
-    io_ctx.release();
-    if (avio_close(io_ctx.get())) {
+    if (avio_close(io_ctx.release())) {
         throw std::runtime_error{"closing output"};
     }
 }
