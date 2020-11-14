@@ -12,16 +12,15 @@ playback / recorder program.
 That sounded like something that an existing player could do as well, so
 this project started as an experiment to see if that can be done.
 
-## What's it doing?
-
-Like in the title, this program losslessly converts OLA showfiles to video 
-files. This video file can then be played using a program like VLC, for full
-fast-forward / pause / seek / loop transport controls.
+## How does it work?
 
 It encodes DMX channel data and universe information in video frames, with
-one line per universe. Each line stores a universe number and the DMX channel
-data associated with that universe. Frames use the 8-bit grayscale / Y800
-pixel format. 
+one line per universe.
+
+Each line stores an universe number and the DMX channel
+data associated with that universe. 
+
+Frames use the 8-bit grayscale / Y800 pixel format. 
 
 ## What's the downsides of this?
 
@@ -92,7 +91,7 @@ Setup the build with Meson:
 meson builddir
 ```
 
-Build with Ninja
+Build with Ninja:
 
 ```terminal
 cd builddir && ninja
@@ -101,7 +100,7 @@ cd builddir && ninja
 ## Usage
 
 1. Ensure that there is an initial state for all universes in the showfile
-   before the non-zero wait time.
+   before any non-zero wait time.
 
    i.e.: If you have 3 universes (0, 1, 2), there must be three lines in 
    the showfile like:
@@ -114,6 +113,16 @@ cd builddir && ninja
    0
    2 ch0,ch1,ch2.....
    0
+   ```
+
+   This is not allowed:
+
+   ```
+   OLA Show
+   0 ch0,ch1,ch2.....
+   100
+   1 ch0,ch1,ch2.....
+   100
    ```
 
 2. Run the converter on the input showfile, specifying the number of universes
