@@ -65,7 +65,7 @@ struct OLAFrame {
      */
     UniverseData data;
 
-    OLAFrame::OLAFrame() {
+    OLAFrame() {
         clear();
     }
 
