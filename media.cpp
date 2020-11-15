@@ -108,7 +108,7 @@ void DMXVideoEncoder::ensure_not_closed() {
   if (closed) throw std::logic_error{"closed"};
 }
 
-void DMXVideoEncoder::write_frame(bool flush) {
+void DMXVideoEncoder::write_frame(std::uint64_t duration, bool flush) {
   if (avcodec_send_frame(enc_ctx.get(), flush ? nullptr : fbuf.get()) < 0)
     throw std::runtime_error{"sending to encoder"};
 
@@ -116,7 +116,7 @@ void DMXVideoEncoder::write_frame(bool flush) {
   int ret;
   while (!(ret = avcodec_receive_packet(enc_ctx.get(), &pkt))) {
     pkt.stream_index = s->index;
-    if (flush) pkt.dts = pkt.pts = next_pts;
+    if (!flush) pkt.duration = duration;
 
     if (av_interleaved_write_frame(fmt_ctx.get(), &pkt) < 0)
       throw std::runtime_error{"write packet to muxer"};
@@ -137,9 +137,7 @@ void DMXVideoEncoder::write_universe(const io::UniverseStates &sts,
 
   io::write_lines(fbuf->data[0], fbuf->linesize[0], sts);
   fbuf->pts = next_pts;
-
-  write_frame();
-
+  write_frame(duration);
   next_pts += duration;
 }
 

@@ -56,7 +56,7 @@ class DMXVideoEncoder {
   std::uint64_t next_pts{0};
 
   void ensure_not_closed();
-  void write_frame(bool flush = false);
+  void write_frame(std::uint64_t duration, bool flush = false);
 
  public:
   DMXVideoEncoder(int universes, const std::string &path);
