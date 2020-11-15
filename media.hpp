@@ -47,7 +47,7 @@ using UniqueAVFormatContext =
     UniqueCDeleterPtr<AVFormatContext, avformat_free_context>;
 
 using UniqueAVFrame = 
-    UniqueCDeleterPtr<AVFrame, av_frame_unref>;
+    UniqueCDeleterPPtr<AVFrame, av_frame_free>;
 
 struct stream_frame {
     AVStream *s;
