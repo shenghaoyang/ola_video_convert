@@ -11,12 +11,13 @@ int prog(int argc, char **argv) {
 
   cxxopts::Options options{"ola_video_convert",
                            "converts an OLA showfile to a video"};
-  options.add_options()("u,universes", "number of universes",
-                        cxxopts::value<int>())("o,output",
-                                               "path of output FFV1 MKV file",
-                                               cxxopts::value<std::string>())(
-      "i,input", "path of input showfile", cxxopts::value<std::string>())(
-      "h,help", "show help");
+  // clang-format off
+  options.add_options()
+    ("u,universes", "number of universes", cxxopts::value<int>())
+    ("o,output", "path of output FFV1 MKV file", cxxopts::value<std::string>())
+    ("i,input", "path of input showfile", cxxopts::value<std::string>())
+    ("h,help", "show help");
+  // clang-format on
   auto result = options.parse(argc, argv);
 
   if (result.count("help")) {
