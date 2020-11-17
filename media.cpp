@@ -146,7 +146,7 @@ void DMXVideoEncoder::close() {
 
   closed = true;
 
-  write_frame(true);
+  write_frame(0, true);
 
   if (av_write_trailer(fmt_ctx.get()))
     throw std::runtime_error{"writing trailer"};
