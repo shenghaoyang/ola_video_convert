@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cxxopts.hpp>
 #include <fstream>
 #include <iostream>
@@ -18,6 +19,9 @@ int prog(int argc, char **argv) {
     ("i,input", "path of input showfile", cxxopts::value<std::string>())
     ("l,last-duration", "duration of last frame (ms)", 
       cxxopts::value<int>()->default_value("1"))
+    ("p,progress",
+      "frame interval between showing encoding statistics and progress. "
+      "(0 = statistics off).", cxxopts::value<int>()->default_value("0"))
     ("h,help", "show help")
     ("extra-positional", "extra positional arguments", 
       cxxopts::value<std::vector<std::string>>());
@@ -48,7 +52,7 @@ int prog(int argc, char **argv) {
     return 1;
   }
 
-  int num_universe{result["universes"].as<int>()};
+  auto num_universe{result["universes"].as<int>()};
   if (num_universe <= 0)
     throw std::runtime_error{"non-positive universe count"};
 
@@ -58,11 +62,14 @@ int prog(int argc, char **argv) {
   std::ifstream show{result["input"].as<std::string>()};
   if (!show) throw std::runtime_error{"could not open showfile"};
 
-  int last_frame_time{result["last-duration"].as<int>()};
+  auto last_frame_time{result["last-duration"].as<int>()};
   io::UniverseStates universe_states{};
   io::OLAFrame d_frame{};
+  auto interval{result["progress"].as<int>()};
+  auto start{std::chrono::steady_clock::now()};
 
-  while (read_frame(show, d_frame) || (d_frame.duration_ms == -1)) {
+  for (std::size_t count{0};
+       (read_frame(show, d_frame) || (d_frame.duration_ms == -1)); ++count) {
     universe_states[d_frame.universe] = d_frame.data;
     if (universe_states.size() > num_universe)
       throw std::runtime_error{"too many universes in showfile"};
@@ -75,6 +82,17 @@ int prog(int argc, char **argv) {
       throw std::runtime_error{"universe state(s) undefined at encode"};
 
     encoder.write_universe(universe_states, d_frame.duration_ms);
+
+    if (interval && count && !(count % interval)) {
+      auto elapsed{std::chrono::steady_clock::now() - start};
+      auto elapsedf{
+          std::chrono::duration<double, decltype(elapsed)::period>{elapsed}
+              .count() /
+          (decltype(elapsed)::period::den)};
+      std::cerr << "Frame " << count << '\n'
+                << "Elapsed " << elapsedf << " s" << '\n'
+                << "Average FPS: " << (count / elapsedf) << '\n';
+    }
   };
 
   if (!show.eof()) throw std::runtime_error{"reading showfile"};
