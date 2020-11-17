@@ -40,11 +40,6 @@ using UniqueAVFormatContext =
 
 using UniqueAVFrame = UniqueCDeleterPPtr<AVFrame, av_frame_free>;
 
-struct stream_frame {
-  AVStream *s;
-  UniqueAVFrame f;
-};
-
 class DMXVideoEncoder {
  private:
   UniqueAVCodecContext enc_ctx;
