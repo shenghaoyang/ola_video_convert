@@ -25,9 +25,15 @@ static UniqueAVCodecContext init_ffv1_context(int universes) {
 
   AVDictionary *options{nullptr};
   try {
+    // GOP size fixed to 1. Changing it between 1 -> 30 doesn't change
+    // resulting filesize significantly and may increase chance of
+    // corruption.
+    // Compressing output file with XZ leads to significantly
+    // more space savings.
     if (av_dict_set(&options, "g", "1", 0) < 0)
       throw std::runtime_error{"setting encoder options"};
 
+    // Turned off to try and improve compatability.
     if (av_dict_set(&options, "slicecrc", "0", 0) < 0)
       throw std::runtime_error{"setting encoder options"};
 
@@ -40,6 +46,10 @@ static UniqueAVCodecContext init_ffv1_context(int universes) {
 
     if (avcodec_open2(ffv1_ctx, ffv1, &options) < 0)
       throw std::runtime_error{"could not open encoder"};
+
+    // Ugly "finally"-like construct here because av_dict_* functions may free
+    // dict. Cannot punt off handling to a unique_ptr unless wedo lots of
+    // release() & reset()s to avoid double-frees.
   } catch (const std::exception &e) {
     av_dict_free(&options);
     throw e;
