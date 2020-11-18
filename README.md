@@ -70,7 +70,6 @@ Dependencies:
 - `libavcodec`
 - `libavformat`
 - `libavutil`
-- `boost`
 - `cxxopts`
 - C++17 capable C++ compiler & C++ standard library.
 
@@ -82,7 +81,7 @@ To install these dependencies on Debian bullseye:
 
 ```terminal
 sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev \
-                     libboost-dev libcxxopts-dev
+                     libcxxopts-dev
 ```
 
 Setup the build with Meson:

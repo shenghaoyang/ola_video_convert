@@ -3,18 +3,16 @@
 
 #include <algorithm>
 #include <array>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <charconv>
 #include <cstdint>
 #include <iostream>
 #include <iterator>
+#include <limits>
+#include <locale>
 #include <map>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace olavc {
 namespace io {
@@ -108,6 +106,64 @@ inline static void write_lines(uint8_t *l, size_t stride,
   }
 }
 
+inline static auto trim(std::string_view s) {
+  static const auto &loc_c{std::locale::classic()};
+  auto not_space = [](char c) { return !std::isspace(c, loc_c); };
+  auto nbegin{std::find_if(std::begin(s), std::end(s), not_space)};
+  auto nend{
+      std::begin(s) +
+      (std::distance(std::find_if(std::rbegin(s), std::rend(s), not_space),
+                     std::rend(s)))};
+  return s.substr(std::distance(std::begin(s), nbegin),
+                  std::distance(nbegin, nend));
+}
+
+inline static auto split_char(std::string_view s, char c) {
+  using rtype = std::pair<std::string_view, std::string_view>;
+  auto bpos{s.find(c)};
+  if (bpos == std::string_view::npos)
+    return rtype{s, std::string_view{s.end()}};
+
+  bpos = s.find_first_not_of(c, bpos);
+  if (bpos == std::string_view::npos) bpos = s.size();
+
+  return rtype{std::string_view{s.begin(), bpos},
+               std::string_view{s.begin() + bpos}};
+}
+
+inline static void ParseChans(std::string_view s, UniverseData &d) {
+  constexpr static int mult[]{100, 10, 1};
+
+  d.fill(0);
+  std::size_t c{};
+  for (std::size_t i{}; i < s.size();) {
+    if (i && s[i] == ',') {
+      ++i;
+      if (i == s.size()) return;
+    }
+
+    int v{};
+    int digits{};
+    for (; digits < 3; ++digits) {
+      if ((i + digits) >= s.size()) break;
+      char c{s[i + digits]};
+      if ((c < '0') || (c > '9')) break;
+    }
+
+    if (!digits)
+      throw std::runtime_error{"channel undefined / has wrong format"};
+
+    for (int digit{}; digit < digits; ++digit)
+      v += (s[i + digit] - '0') * mult[(3 - digits) + digit];
+    if (v > std::numeric_limits<UniverseData::value_type>::max())
+      throw std::runtime_error{"channel value overflow"};
+
+    d.at(c++) = v;
+
+    i += digits;
+  }
+}
+
 /**
  * Reads frames from an OLA recorder showfile.
  *
@@ -119,17 +175,10 @@ inline static void write_lines(uint8_t *l, size_t stride,
  *
  * \note Not a fully compliant reader: accepts header at non-0 position.
  */
-template <typename T>
-static T &read_frame(T &s, OLAFrame &f) {
-  static_assert(std::is_base_of<std::istream, T>::value,
-                "s must be a char input stream");
-
+static std::istream &read_frame(std::istream &s, OLAFrame &f) {
   thread_local std::string buf{};
-  thread_local std::vector<boost::iterator_range<std::string::const_iterator>>
-      split{};
   bool readdata{false};
 
-  split.clear();
   f.clear();
   while (true) {
     if (!std::getline(s, buf)) {
@@ -137,40 +186,25 @@ static T &read_frame(T &s, OLAFrame &f) {
       break;
     }
 
-    boost::trim(buf);
-    if ((buf == show_header) || !buf.size()) continue;
+    const auto bufv{trim(buf)};
+    if ((bufv == show_header) || !bufv.size()) continue;
 
-    boost::split(split, buf, [](const char c) { return c == ' '; });
+    auto segs{split_char(bufv, ' ')};
 
     std::uint32_t val;
-    const auto &first{split[0]};
-    const auto *beg{&(*first.begin())};
-    auto rslt{std::from_chars(beg, beg + first.size(), val)};
+    auto rslt{std::from_chars(segs.first.data(),
+                              segs.first.data() + segs.first.size(), val)};
     if (rslt.ec != std::errc{})
       throw std::runtime_error{"bad frame duration / universe number"};
 
-    if (split.size() < 2) {
+    if (!segs.second.size()) {
       if (!readdata) throw std::runtime_error{"no frame before frame time"};
-
       f.duration_ms = val;
       break;
     }
 
     f.universe = val;
-    beg = &(*split[1].begin());
-    std::string_view second{beg, split[1].size()};
-    split.clear();
-
-    boost::split(split, second, [](const char c) { return c == ','; });
-    for (std::size_t i{0}; i < split.size(); ++i) {
-      const auto &channel{split[i]};
-      // Trailing commas
-      if (!channel.size() && (i == (split.size() - 1))) break;
-
-      const auto *beg{&(*channel.begin())};
-      auto rslt{std::from_chars(beg, beg + channel.size(), f.data[i])};
-      if (rslt.ec != std::errc{}) throw std::runtime_error{"bad frame data"};
-    }
+    ParseChans(segs.second, f.data);
     readdata = true;
   }
 
